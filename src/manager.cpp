@@ -1,7 +1,6 @@
 #include "manager.h"
 
 static constexpr char* serviceName = "usbsync";
-static constexpr char* serviceDisplay = "USBSync";
 
 DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID context)
 {
@@ -169,67 +168,7 @@ void WINAPI serviceMain(DWORD argc, LPTSTR* argv)
 HandlerContext::HandlerContext() :
     sync(new USBSync()) {}
 
-USBSyncManager* USBSyncManager::init()
-{
-    SC_HANDLE manager = OpenSCManager(nullptr, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CREATE_SERVICE);
-
-    if (!manager)
-    {
-        return nullptr;
-    }
-
-    return new USBSyncManager(manager);
-}
-
-USBSyncManager::~USBSyncManager()
-{
-    CloseServiceHandle(manager);
-}
-
-bool USBSyncManager::createService() const
-{
-    char path[MAX_PATH];
-
-    if (!GetModuleFileName(nullptr, path, MAX_PATH))
-    {
-        return false;
-    }
-
-    char quoted[MAX_PATH];
-
-    snprintf(quoted, MAX_PATH, "\"%s\"", path);
-
-    SC_HANDLE service = CreateService(manager, serviceName, serviceDisplay, SC_MANAGER_CREATE_SERVICE,
-                                      SERVICE_WIN32_OWN_PROCESS, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, quoted,
-                                      nullptr, nullptr, nullptr, nullptr, nullptr);
-
-    if (!service)
-    {
-        return false;
-    }
-
-    CloseServiceHandle(service);
-
-    return true;
-}
-
-bool USBSyncManager::deleteService() const
-{
-    SC_HANDLE service = OpenService(manager, serviceName, DELETE);
-
-    if (!service)
-    {
-        return false;
-    }
-
-    const bool result = DeleteService(service);
-
-    CloseServiceHandle(service);
-
-    return result;
-}
-
-void USBSyncManager::startService() const
+void USBSyncManager::startService()
 {
     SERVICE_TABLE_ENTRY dispatchTable[] =
     {
@@ -239,6 +178,3 @@ void USBSyncManager::startService() const
 
     StartServiceCtrlDispatcher(dispatchTable);
 }
-
-USBSyncManager::USBSyncManager(SC_HANDLE manager) :
-    manager(manager) {}

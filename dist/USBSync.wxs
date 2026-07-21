@@ -1,0 +1,19 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="$(displayName)" Manufacturer="ERSUCC" Version="$(version)" UpgradeCode="$(upgradeCode)">
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="RootDirectory" Name="$(displayName)" FileSource="$(root)">
+        <Component Id="ServiceComponent">
+          <File Id="ExeFile" Source="$(exe)" KeyPath="yes" />
+          <ServiceInstall Type="ownProcess" Name="$(name)" DisplayName="$(displayName)" Start="auto" Account="LocalSystem" ErrorControl="normal" />
+          <ServiceControl Name="$(name)" Start="install" Stop="both" Remove="both" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="InstallerFeature" Title="$(displayName)">
+      <ComponentRef Id="ServiceComponent" />
+    </Feature>
+  </Package>
+</Wix>

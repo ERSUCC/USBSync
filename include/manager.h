@@ -22,18 +22,5 @@ struct HandlerContext
 
 struct USBSyncManager
 {
-    static USBSyncManager* init();
-
-    ~USBSyncManager();
-
-    bool createService() const;
-    bool deleteService() const;
-
-    void startService() const;
-
-private:
-    USBSyncManager(SC_HANDLE manager);
-
-    SC_HANDLE manager;
-
+    static void startService();
 };

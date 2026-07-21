@@ -12,3 +12,5 @@ add_executable(usbsync WIN32 src/main.cpp
 target_include_directories(usbsync PRIVATE include)
 
 target_link_libraries(usbsync PRIVATE cfgmgr32)
+
+install(TARGETS usbsync DESTINATION .)
