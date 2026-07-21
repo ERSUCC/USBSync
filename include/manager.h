@@ -12,6 +12,10 @@
 
 struct HandlerContext
 {
+    HandlerContext();
+
+    USBSync* sync;
+
     SERVICE_STATUS_HANDLE statusHandle = nullptr;
     HCMNOTIFICATION notifyContext;
 };

@@ -12,7 +12,7 @@ DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID contex
 
         case SERVICE_CONTROL_STOP:
         {
-            USBSync::destroyInstance();
+            HandlerContext* handlerContext = (HandlerContext*)context;
 
             SERVICE_STATUS status;
 
@@ -22,7 +22,7 @@ DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID contex
             status.dwCheckPoint = 0;
             status.dwWaitHint = 0;
 
-            CONFIGRET result = CM_Unregister_Notification(((HandlerContext*)context)->notifyContext);
+            CONFIGRET result = CM_Unregister_Notification(handlerContext->notifyContext);
 
             if (result == CR_SUCCESS)
             {
@@ -35,7 +35,7 @@ DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID contex
                 status.dwServiceSpecificExitCode = result;
             }
 
-            SetServiceStatus(((HandlerContext*)context)->statusHandle, &status);
+            SetServiceStatus(handlerContext->statusHandle, &status);
 
             delete context;
 
@@ -104,7 +104,7 @@ DWORD CALLBACK handleNotify(HCMNOTIFICATION handle, PVOID context, CM_NOTIFY_ACT
 
                         wcstombs(source, drive, MAX_PATH);
 
-                        USBSync::getInstance()->beginSync(source);
+                        ((HandlerContext*)context)->sync->beginSync(source);
 
                         return ERROR_SUCCESS;
                     }
@@ -146,7 +146,7 @@ void WINAPI serviceMain(DWORD argc, LPTSTR* argv)
     filter.Reserved = 0;
     filter.u.DeviceInterface.ClassGuid = GUID_DEVINTERFACE_VOLUME;
 
-    CONFIGRET result = CM_Register_Notification(&filter, nullptr, handleNotify, &context->notifyContext);
+    CONFIGRET result = CM_Register_Notification(&filter, context, handleNotify, &context->notifyContext);
 
     if (result == CR_SUCCESS)
     {
@@ -165,6 +165,9 @@ void WINAPI serviceMain(DWORD argc, LPTSTR* argv)
 
     SetServiceStatus(context->statusHandle, &status);
 }
+
+HandlerContext::HandlerContext() :
+    sync(new USBSync()) {}
 
 USBSyncManager* USBSyncManager::init()
 {

@@ -38,26 +38,9 @@ void SyncTask::signalAbort()
     }
 }
 
-USBSync* USBSync::getInstance()
+USBSync::~USBSync()
 {
-    static USBSync* instance;
-
-    if (!instance)
-    {
-        instance = new USBSync();
-    }
-
-    return instance;
-}
-
-void USBSync::destroyInstance()
-{
-    static USBSync* instance;
-
-    if (instance)
-    {
-        delete instance;
-    }
+    stopSync();
 }
 
 void USBSync::beginSync(const std::string& source)
@@ -83,9 +66,4 @@ void USBSync::stopSync()
 
         delete task;
     }
-}
-
-USBSync::~USBSync()
-{
-    stopSync();
 }

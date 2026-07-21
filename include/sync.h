@@ -27,18 +27,12 @@ private:
 
 struct USBSync
 {
-    static USBSync* getInstance();
-
-    static void destroyInstance();
+    ~USBSync();
 
     void beginSync(const std::string& source);
     void stopSync();
 
 private:
-    ~USBSync();
-
-    static USBSync* instance;
-
     SyncTask* task = nullptr;
 
 };
