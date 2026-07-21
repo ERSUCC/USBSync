@@ -11,11 +11,15 @@
 
 struct SyncTask
 {
-    SyncTask(const std::string& source, const std::string& dest);
+    SyncTask(const GUID& guid, const std::string& source, const std::string& dest);
+
+    bool matches(const GUID& guid) const;
 
     void signalAbort();
 
 private:
+    const GUID guid;
+
     const std::string source;
     const std::string dest;
 
@@ -29,8 +33,9 @@ struct USBSync
 {
     ~USBSync();
 
-    void beginSync(const std::string& source);
-    void stopSync();
+    void beginSync(const GUID& guid, const std::string& name, const std::string& source);
+    void stopSync(const GUID& guid);
+    void stopAllSync();
 
 private:
     SyncTask* task = nullptr;

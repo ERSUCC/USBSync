@@ -13,6 +13,7 @@
 struct HandlerContext
 {
     HandlerContext();
+    ~HandlerContext();
 
     USBSync* sync;
 

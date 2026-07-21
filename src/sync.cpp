@@ -1,7 +1,7 @@
 #include "sync.h"
 
-SyncTask::SyncTask(const std::string& source, const std::string& dest) :
-    source(source), dest(dest)
+SyncTask::SyncTask(const GUID& guid, const std::string& source, const std::string& dest) :
+    guid(guid), source(source), dest(dest)
 {
     thread = std::thread([=]()
     {
@@ -28,6 +28,11 @@ SyncTask::SyncTask(const std::string& source, const std::string& dest) :
     });
 }
 
+bool SyncTask::matches(const GUID& guid) const
+{
+    return this->guid == guid;
+}
+
 void SyncTask::signalAbort()
 {
     abort = true;
@@ -40,12 +45,12 @@ void SyncTask::signalAbort()
 
 USBSync::~USBSync()
 {
-    stopSync();
+    stopAllSync();
 }
 
-void USBSync::beginSync(const std::string& source)
+void USBSync::beginSync(const GUID& guid, const std::string& name, const std::string& source)
 {
-    stopSync();
+    stopAllSync();
 
     const time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -55,10 +60,24 @@ void USBSync::beginSync(const std::string& source)
 
     dateTime[19] = '\0';
 
-    task = new SyncTask(source, std::string("C:\\ProgramData\\USBSync\\Backups\\") + dateTime + "_UNFINISHED");
+    char dest[MAX_PATH];
+
+    snprintf(dest, MAX_PATH, "C:\\ProgramData\\USBSync\\Backups\\%s-%s_UNFINISHED", name.c_str(), dateTime);
+
+    task = new SyncTask(guid, source, dest);
 }
 
-void USBSync::stopSync()
+void USBSync::stopSync(const GUID& guid)
+{
+    if (task && task->matches(guid))
+    {
+        task->signalAbort();
+
+        delete task;
+    }
+}
+
+void USBSync::stopAllSync()
 {
     if (task)
     {

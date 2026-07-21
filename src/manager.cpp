@@ -36,7 +36,7 @@ DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID contex
 
             SetServiceStatus(handlerContext->statusHandle, &status);
 
-            delete context;
+            delete handlerContext;
 
             return NO_ERROR;
         }
@@ -46,9 +46,9 @@ DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID contex
     }
 }
 
-std::optional<GUID> getGUID(const std::wstring& name)
+std::optional<GUID> getGUID(const std::wstring& path)
 {
-    HANDLE device = CreateFileW(name.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+    HANDLE device = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
                                 FILE_ATTRIBUTE_NORMAL, nullptr);
 
     if (device == INVALID_HANDLE_VALUE)
@@ -70,9 +70,39 @@ std::optional<GUID> getGUID(const std::wstring& name)
     return info.DeviceGuid;
 }
 
+std::optional<std::string> getName(const std::wstring& path)
+{
+    HANDLE device = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+                                FILE_ATTRIBUTE_NORMAL, nullptr);
+
+    if (device == INVALID_HANDLE_VALUE)
+    {
+        return std::nullopt;
+    }
+
+    WCHAR name[MAX_PATH];
+
+    if (!GetVolumeInformationByHandleW(device, name, MAX_PATH, nullptr, nullptr, nullptr, nullptr, 0))
+    {
+        CloseHandle(device);
+
+        return std::nullopt;
+    }
+
+    CloseHandle(device);
+
+    char cname[MAX_PATH];
+
+    wcstombs(cname, name, MAX_PATH);
+
+    return cname;
+}
+
 DWORD CALLBACK handleNotify(HCMNOTIFICATION handle, PVOID context, CM_NOTIFY_ACTION action, PCM_NOTIFY_EVENT_DATA data,
                             DWORD size)
 {
+    HandlerContext* handlerContext = (HandlerContext*)context;
+
     switch (action)
     {
         case CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL:
@@ -103,7 +133,9 @@ DWORD CALLBACK handleNotify(HCMNOTIFICATION handle, PVOID context, CM_NOTIFY_ACT
 
                         wcstombs(source, drive, MAX_PATH);
 
-                        ((HandlerContext*)context)->sync->beginSync(source);
+                        const std::string name = getName(data->u.DeviceInterface.SymbolicLink).value_or("UNNAMED");
+
+                        handlerContext->sync->beginSync(guid.value(), name, source);
 
                         return ERROR_SUCCESS;
                     }
@@ -112,6 +144,14 @@ DWORD CALLBACK handleNotify(HCMNOTIFICATION handle, PVOID context, CM_NOTIFY_ACT
 
             return ERROR_SUCCESS;
         }
+
+        case CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL:
+            if (const std::optional<GUID> guid = getGUID(data->u.DeviceInterface.SymbolicLink))
+            {
+                handlerContext->sync->stopSync(guid.value());
+            }
+
+            return ERROR_SUCCESS;
 
         default:
             return ERROR_SUCCESS;
@@ -167,6 +207,11 @@ void WINAPI serviceMain(DWORD argc, LPTSTR* argv)
 
 HandlerContext::HandlerContext() :
     sync(new USBSync()) {}
+
+HandlerContext::~HandlerContext()
+{
+    delete sync;
+}
 
 void USBSyncManager::startService()
 {
