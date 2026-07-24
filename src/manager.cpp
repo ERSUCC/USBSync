@@ -214,6 +214,8 @@ void USBSyncManager::startService(HINSTANCE instance)
 
     if (!RegisterClassEx(&wndClass))
     {
+        delete context;
+
         return;
     }
 
@@ -239,11 +241,15 @@ void USBSyncManager::startService(HINSTANCE instance)
 
     if (!Shell_NotifyIcon(NIM_ADD, &data))
     {
+        delete context;
+
         return;
     }
 
     if (!Shell_NotifyIcon(NIM_SETVERSION, &data))
     {
+        delete context;
+
         return;
     }
 
@@ -254,4 +260,6 @@ void USBSyncManager::startService(HINSTANCE instance)
         TranslateMessage(&message);
         DispatchMessage(&message);
     }
+
+    delete context;
 }
