@@ -74,7 +74,7 @@ void USBSync::beginSync(const GUID& guid, const std::string& name, const std::st
 
     char dest[MAX_PATH];
 
-    snprintf(dest, MAX_PATH, "C:\\ProgramData\\USBSync\\Backups\\%s-%s_UNFINISHED", name.c_str(), dateTime);
+    snprintf(dest, MAX_PATH, "%s\\%s-%s_UNFINISHED", backupRoot, name.c_str(), dateTime);
 
     task = new SyncTask(guid, name, source, dest);
 }

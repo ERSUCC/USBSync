@@ -4,7 +4,8 @@ struct DECLSPEC_UUID(USBSYNC_GUID) USBSyncGuid;
 
 constexpr UINT TRAY_MESSAGE = WM_APP + 1;
 
-#define TRAY_CONTEXT_QUIT 0
+#define TRAY_CONTEXT_VIEW 0
+#define TRAY_CONTEXT_QUIT 1
 
 std::optional<GUID> getGUID(const std::wstring& path)
 {
@@ -143,6 +144,7 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
 
                     HMENU menu = CreatePopupMenu();
 
+                    AppendMenu(menu, 0, TRAY_CONTEXT_VIEW, "View Backups");
                     AppendMenu(menu, 0, TRAY_CONTEXT_QUIT, "Quit");
 
                     TrackPopupMenu(menu, TPM_RIGHTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON, LOWORD(wParam),
@@ -156,6 +158,11 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         case WM_COMMAND:
             switch (LOWORD(wParam))
             {
+                case TRAY_CONTEXT_VIEW:
+                    ShellExecute(window, "explore", USBSync::backupRoot, nullptr, nullptr, SW_SHOW);
+
+                    break;
+
                 case TRAY_CONTEXT_QUIT:
                     stopService();
 

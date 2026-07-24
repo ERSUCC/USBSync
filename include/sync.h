@@ -40,6 +40,8 @@ struct USBSync
     void stopSync(const GUID& guid);
     void stopAllSync();
 
+    static constexpr char* backupRoot = "C:\\ProgramData\\USBSync\\Backups";
+
 private:
     SyncTask* task = nullptr;
 
