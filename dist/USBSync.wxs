@@ -2,6 +2,9 @@
   <Package Name="$(displayName)" Manufacturer="ERSUCC" Version="$(version)" UpgradeCode="$(guid)">
     <MediaTemplate EmbedCab="yes" />
 
+    <Icon Id="ServiceIcon" SourceFile="$(icon)" />
+    <Property Id="ARPPRODUCTICON" Value="ServiceIcon" />
+
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="RootDirectory" Name="$(displayName)" FileSource="$(root)">
         <Component Id="ServiceComponent">
@@ -14,7 +17,7 @@
 
     <StandardDirectory Id="ProgramMenuFolder">
       <Component Id="ShortcutComponent">
-        <Shortcut Id="ServiceShortcut" Name="USBSync" Target="$(exe)" WorkingDirectory="RootDirectory">
+        <Shortcut Id="ServiceShortcut" Name="USBSync" Target="[RootDirectory]$(exe)" WorkingDirectory="RootDirectory">
           <ShortcutProperty Key="System.AppUserModel.ID" Value="$(appId)" />
           <ShortcutProperty Key="System.AppUserModel.ToastActivatorCLSID" Value="{$(guid)}" />
         </Shortcut>

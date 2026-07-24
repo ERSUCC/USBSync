@@ -224,7 +224,7 @@ void USBSyncManager::startService(HINSTANCE instance)
     data.hWnd = window;
     data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP | NIF_GUID;
     data.uCallbackMessage = TRAY_MESSAGE;
-    data.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    data.hIcon = (HICON)LoadImage(instance, "AppIcon", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
     data.uVersion = NOTIFYICON_VERSION_4;
     data.guidItem = __uuidof(USBSyncGuid);
 

@@ -5,7 +5,8 @@ project(usbsync)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_executable(usbsync WIN32 src/main.cpp
+add_executable(usbsync WIN32 assets/resources.rc
+                             src/main.cpp
                              src/manager.cpp
                              src/sync.cpp
                              src/toast.cpp)
@@ -18,3 +19,4 @@ target_include_directories(usbsync PRIVATE include)
 target_link_libraries(usbsync PRIVATE cfgmgr32 runtimeobject)
 
 install(TARGETS usbsync DESTINATION .)
+install(FILES assets/USBSync.ico DESTINATION .)
