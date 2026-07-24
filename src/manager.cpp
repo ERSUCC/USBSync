@@ -118,6 +118,19 @@ DWORD CALLBACK handleNotify(HCMNOTIFICATION handle, PVOID context, CM_NOTIFY_ACT
     }
 }
 
+void stopService()
+{
+    NOTIFYICONDATA data = { 0 };
+
+    data.cbSize = sizeof(NOTIFYICONDATA);
+    data.uFlags = NIF_GUID;
+    data.guidItem = __uuidof(USBSyncGuid);
+
+    Shell_NotifyIcon(NIM_DELETE, &data);
+
+    PostQuitMessage(0);
+}
+
 LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -144,18 +157,15 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             switch (LOWORD(wParam))
             {
                 case TRAY_CONTEXT_QUIT:
-                    NOTIFYICONDATA data = { 0 };
-
-                    data.cbSize = sizeof(NOTIFYICONDATA);
-                    data.uFlags = NIF_GUID;
-                    data.guidItem = __uuidof(USBSyncGuid);
-
-                    Shell_NotifyIcon(NIM_DELETE, &data);
-
-                    PostQuitMessage(0);
+                    stopService();
 
                     break;
             }
+
+            break;
+
+        case WM_DESTROY:
+            stopService();
 
             break;
     }

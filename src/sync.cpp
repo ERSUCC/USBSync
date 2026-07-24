@@ -1,17 +1,22 @@
 #include "sync.h"
 
-SyncTask::SyncTask(const GUID& guid, const std::string& source, const std::string& dest) :
-    guid(guid), source(source), dest(dest)
+SyncTask::SyncTask(const GUID& guid, const std::string& name, const std::string& source, const std::string& dest) :
+    guid(guid), name(name), source(source), dest(dest)
 {
     thread = std::thread([=]()
     {
+        USBSyncToast::initToast();
+        USBSyncToast::displayToast("Sync started for " + name);
+
         std::filesystem::create_directories(dest);
 
         for (const std::filesystem::directory_entry entry : std::filesystem::recursive_directory_iterator(source))
         {
             if (abort)
             {
-                return;
+                USBSyncToast::displayToast("Sync aborted for " + name);
+
+                break;
             }
 
             if (!entry.is_directory())
@@ -24,7 +29,14 @@ SyncTask::SyncTask(const GUID& guid, const std::string& source, const std::strin
             }
         }
 
-        MoveFile(dest.c_str(), dest.substr(0, dest.size() - 11).c_str());
+        if (!abort)
+        {
+            MoveFile(dest.c_str(), dest.substr(0, dest.size() - 11).c_str());
+
+            USBSyncToast::displayToast("Sync completed for " + name);
+        }
+
+        USBSyncToast::deinitToast();
     });
 }
 
@@ -64,7 +76,7 @@ void USBSync::beginSync(const GUID& guid, const std::string& name, const std::st
 
     snprintf(dest, MAX_PATH, "C:\\ProgramData\\USBSync\\Backups\\%s-%s_UNFINISHED", name.c_str(), dateTime);
 
-    task = new SyncTask(guid, source, dest);
+    task = new SyncTask(guid, name, source, dest);
 }
 
 void USBSync::stopSync(const GUID& guid)

@@ -1,11 +1,12 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="$(displayName)" Manufacturer="ERSUCC" Version="$(version)" UpgradeCode="$(upgradeCode)">
+  <Package Name="$(displayName)" Manufacturer="ERSUCC" Version="$(version)" UpgradeCode="$(guid)">
     <MediaTemplate EmbedCab="yes" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="RootDirectory" Name="$(displayName)" FileSource="$(root)">
         <Component Id="ServiceComponent">
           <File Id="ServiceExe" Source="$(exe)" KeyPath="yes" />
+          <RegistryValue Root="HKCU" Key="Software\Classes\CLSID\{$(guid)}\LocalServer32" Type="string" Value="[#ServiceExe]" />
           <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="USBSync" Type="string" Value='"[#ServiceExe]"' />
         </Component>
       </Directory>
@@ -13,7 +14,10 @@
 
     <StandardDirectory Id="ProgramMenuFolder">
       <Component Id="ShortcutComponent">
-        <Shortcut Id="ServiceShortcut" Name="USBSync" Target="$(exe)" WorkingDirectory="RootDirectory" />
+        <Shortcut Id="ServiceShortcut" Name="USBSync" Target="$(exe)" WorkingDirectory="RootDirectory">
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="$(appId)" />
+          <ShortcutProperty Key="System.AppUserModel.ToastActivatorCLSID" Value="{$(guid)}" />
+        </Shortcut>
         <RegistryValue Root="HKCU" Key="Software\USBSync" Name="installed" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </StandardDirectory>

@@ -12,4 +12,4 @@ cmake --install build --config Release --prefix install || exit /b 1
 
 wix build -src dist\USBSync.wxs -bindpath install -out install\USBSyncInstaller.msi -pdbtype none -arch x64 ^
   -define name=usbsync -define displayName=USBSync -define exe=usbsync.exe -define root=install ^
-  -define version=0.1.0 -define upgradeCode=%guid% || exit /b 1
+  -define version=0.1.0 -define guid=%guid% -define appId=%appId% || exit /b 1

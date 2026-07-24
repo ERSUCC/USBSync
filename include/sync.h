@@ -9,9 +9,11 @@
 
 #include <Windows.h>
 
+#include "toast.h"
+
 struct SyncTask
 {
-    SyncTask(const GUID& guid, const std::string& source, const std::string& dest);
+    SyncTask(const GUID& guid, const std::string& name, const std::string& source, const std::string& dest);
 
     bool matches(const GUID& guid) const;
 
@@ -20,6 +22,7 @@ struct SyncTask
 private:
     const GUID guid;
 
+    const std::string name;
     const std::string source;
     const std::string dest;
 
