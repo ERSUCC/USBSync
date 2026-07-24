@@ -1,50 +1,10 @@
 #include "manager.h"
 
-static constexpr char* serviceName = "usbsync";
+struct DECLSPEC_UUID(USBSYNC_GUID) USBSyncGuid;
 
-DWORD WINAPI handleControl(DWORD control, DWORD type, LPVOID data, LPVOID context)
-{
-    switch (control)
-    {
-        case SERVICE_CONTROL_INTERROGATE:
-            return NO_ERROR;
+constexpr UINT TRAY_MESSAGE = WM_APP + 1;
 
-        case SERVICE_CONTROL_STOP:
-        {
-            HandlerContext* handlerContext = (HandlerContext*)context;
-
-            SERVICE_STATUS status;
-
-            status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-            status.dwCurrentState = SERVICE_STOPPED;
-            status.dwControlsAccepted = 0;
-            status.dwCheckPoint = 0;
-            status.dwWaitHint = 0;
-
-            CONFIGRET result = CM_Unregister_Notification(handlerContext->notifyContext);
-
-            if (result == CR_SUCCESS)
-            {
-                status.dwWin32ExitCode = NO_ERROR;
-            }
-
-            else
-            {
-                status.dwWin32ExitCode = ERROR_SERVICE_SPECIFIC_ERROR;
-                status.dwServiceSpecificExitCode = result;
-            }
-
-            SetServiceStatus(handlerContext->statusHandle, &status);
-
-            delete handlerContext;
-
-            return NO_ERROR;
-        }
-
-        default:
-            return ERROR_CALL_NOT_IMPLEMENTED;
-    }
-}
+#define TRAY_CONTEXT_QUIT 0
 
 std::optional<GUID> getGUID(const std::wstring& path)
 {
@@ -158,51 +118,49 @@ DWORD CALLBACK handleNotify(HCMNOTIFICATION handle, PVOID context, CM_NOTIFY_ACT
     }
 }
 
-void WINAPI serviceMain(DWORD argc, LPTSTR* argv)
+LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HandlerContext* context = new HandlerContext();
-
-    context->statusHandle = RegisterServiceCtrlHandlerEx(serviceName, &handleControl, context);
-
-    if (!context->statusHandle)
+    switch (message)
     {
-        delete context;
+        case TRAY_MESSAGE:
+            switch (LOWORD(lParam))
+            {
+                case WM_CONTEXTMENU:
+                    SetForegroundWindow(window);
 
-        return;
+                    HMENU menu = CreatePopupMenu();
+
+                    AppendMenu(menu, 0, TRAY_CONTEXT_QUIT, "Quit");
+
+                    TrackPopupMenu(menu, TPM_RIGHTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON, LOWORD(wParam),
+                                   HIWORD(wParam), 0, window, nullptr);
+
+                    break;
+            }
+
+            break;
+
+        case WM_COMMAND:
+            switch (LOWORD(wParam))
+            {
+                case TRAY_CONTEXT_QUIT:
+                    NOTIFYICONDATA data = { 0 };
+
+                    data.cbSize = sizeof(NOTIFYICONDATA);
+                    data.uFlags = NIF_GUID;
+                    data.guidItem = __uuidof(USBSyncGuid);
+
+                    Shell_NotifyIcon(NIM_DELETE, &data);
+
+                    PostQuitMessage(0);
+
+                    break;
+            }
+
+            break;
     }
 
-    SERVICE_STATUS status;
-
-    status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-    status.dwCheckPoint = 0;
-    status.dwWaitHint = 0;
-
-    CM_NOTIFY_FILTER filter;
-
-    filter.cbSize = sizeof(CM_NOTIFY_FILTER);
-    filter.Flags = 0;
-    filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
-    filter.Reserved = 0;
-    filter.u.DeviceInterface.ClassGuid = GUID_DEVINTERFACE_VOLUME;
-
-    CONFIGRET result = CM_Register_Notification(&filter, context, handleNotify, &context->notifyContext);
-
-    if (result == CR_SUCCESS)
-    {
-        status.dwCurrentState = SERVICE_RUNNING;
-        status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
-        status.dwWin32ExitCode = NO_ERROR;
-    }
-
-    else
-    {
-        status.dwCurrentState = SERVICE_STOPPED;
-        status.dwControlsAccepted = 0;
-        status.dwWin32ExitCode = ERROR_SERVICE_SPECIFIC_ERROR;
-        status.dwServiceSpecificExitCode = result;
-    }
-
-    SetServiceStatus(context->statusHandle, &status);
+    return DefWindowProc(window, message, wParam, lParam);
 }
 
 HandlerContext::HandlerContext() :
@@ -213,13 +171,70 @@ HandlerContext::~HandlerContext()
     delete sync;
 }
 
-void USBSyncManager::startService()
+void USBSyncManager::startService(HINSTANCE instance)
 {
-    SERVICE_TABLE_ENTRY dispatchTable[] =
-    {
-        { serviceName, serviceMain },
-        { nullptr, nullptr }
-    };
+    HandlerContext* context = new HandlerContext();
 
-    StartServiceCtrlDispatcher(dispatchTable);
+    CM_NOTIFY_FILTER filter;
+
+    filter.cbSize = sizeof(CM_NOTIFY_FILTER);
+    filter.Flags = 0;
+    filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
+    filter.Reserved = 0;
+    filter.u.DeviceInterface.ClassGuid = GUID_DEVINTERFACE_VOLUME;
+
+    if (CM_Register_Notification(&filter, context, handleNotify, &context->notifyContext) != CR_SUCCESS)
+    {
+        return;
+    }
+
+    WNDCLASSEX wndClass = { 0 };
+
+    wndClass.cbSize = sizeof(wndClass);
+    wndClass.hInstance = instance;
+    wndClass.lpfnWndProc = windowProc;
+    wndClass.lpszClassName = USBSYNC_APP_ID;
+
+    if (!RegisterClassEx(&wndClass))
+    {
+        return;
+    }
+
+    HWND window = CreateWindow(USBSYNC_APP_ID, USBSYNC_APP_ID, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500,
+                               500, nullptr, nullptr, instance, nullptr);
+
+    if (!window)
+    {
+        return;
+    }
+
+    NOTIFYICONDATA data = { 0 };
+
+    data.cbSize = sizeof(data);
+    data.hWnd = window;
+    data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP | NIF_GUID;
+    data.uCallbackMessage = TRAY_MESSAGE;
+    data.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+    data.uVersion = NOTIFYICON_VERSION_4;
+    data.guidItem = __uuidof(USBSyncGuid);
+
+    snprintf(data.szTip, 128, USBSYNC_APP_ID);
+
+    if (!Shell_NotifyIcon(NIM_ADD, &data))
+    {
+        return;
+    }
+
+    if (!Shell_NotifyIcon(NIM_SETVERSION, &data))
+    {
+        return;
+    }
+
+    MSG message;
+
+    while (GetMessage(&message, window, 0, 0))
+    {
+        TranslateMessage(&message);
+        DispatchMessage(&message);
+    }
 }

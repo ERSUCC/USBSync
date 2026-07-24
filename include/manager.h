@@ -23,5 +23,5 @@ struct HandlerContext
 
 struct USBSyncManager
 {
-    static void startService();
+    static void startService(HINSTANCE instance);
 };

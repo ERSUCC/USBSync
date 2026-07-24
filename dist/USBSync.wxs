@@ -5,15 +5,28 @@
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="RootDirectory" Name="$(displayName)" FileSource="$(root)">
         <Component Id="ServiceComponent">
-          <File Id="ExeFile" Source="$(exe)" KeyPath="yes" />
-          <ServiceInstall Type="ownProcess" Name="$(name)" DisplayName="$(displayName)" Start="auto" Account="LocalSystem" ErrorControl="normal" />
-          <ServiceControl Name="$(name)" Start="install" Stop="both" Remove="both" />
+          <File Id="ServiceExe" Source="$(exe)" KeyPath="yes" />
+          <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="USBSync" Type="string" Value='"[#ServiceExe]"' />
         </Component>
       </Directory>
     </StandardDirectory>
 
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="ShortcutComponent">
+        <Shortcut Id="ServiceShortcut" Name="USBSync" Target="$(exe)" WorkingDirectory="RootDirectory" />
+        <RegistryValue Root="HKCU" Key="Software\USBSync" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
     <Feature Id="InstallerFeature" Title="$(displayName)">
       <ComponentRef Id="ServiceComponent" />
+      <ComponentRef Id="ShortcutComponent" />
     </Feature>
+
+    <CustomAction Id="StartExe" FileRef="ServiceExe" ExeCommand="" Impersonate="yes" Return="asyncNoWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="StartExe" OnExit="success" />
+    </InstallExecuteSequence>
   </Package>
 </Wix>
